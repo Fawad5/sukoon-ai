@@ -31,27 +31,31 @@ authenticator = stauth.Authenticate(
 )
 
 # --- 3. LOGIN & SIGNUP UI ---
+# --- 3. LOGIN & SIGNUP UI ---
 if not st.session_state.get("authentication_status"):
     st.markdown("<h1 style='text-align: center; color: #2e7d32;'>Sukoon AI | سکون</h1>", unsafe_allow_html=True)
     tab1, tab2 = st.tabs(["🔐 Login", "📝 Sign Up"])
     
     with tab1:
-        # Latest version uses location='main'
+        # This handles the login process
         authenticator.login(location='main')
     
     with tab2:
         try:
-            # UPDATED: pre_authorized now takes an empty list [] to allow anyone to sign up
+            # pre_authorized=[] allows anyone to sign up
             if authenticator.register_user(location='main', pre_authorized=[]):
                 st.success('User registered successfully! Please switch to the Login tab.')
-                # Crucial: Update the session state so the Login tab knows about the new user
-                st.session_state.credentials = authenticator.credentials
+                
+                # UPDATED: In new versions, use authenticator.authenticator_dict 
+                # instead of authenticator.credentials
+                st.session_state.credentials = authenticator.authenticator_dict
         except Exception as e:
-            # This will catch if the email already exists or username is taken
+            # We only show the error if it's not a successful registration
             st.error(f"Registration error: {e}")
 
-# --- 4. PROTECTED APP CONTENT (Only visible if logged in) ---
-if st.session_state.get("authentication_status"):
+# --- 4. CHECK AUTH STATUS ---
+# We pull these from session state directly now
+authentication_status = st.session_state.get("authentication_status")
     
     # --- THEME STATE ---
     if 'dark_mode' not in st.session_state:
