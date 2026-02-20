@@ -94,18 +94,27 @@ if user_input:
             docs = vector_db.similarity_search(user_input, k=1)
             context = docs[0].page_content
             
+            # We add a clearer instruction to the prompt to help the AI
             prompt = f"""
             User Input: {user_input}
             Context: {context}
-            Task: Comfort the user. Use English and Urdu. Separate with 'SEPARATOR'.
+            Task: Provide a comforting response. 
+            You MUST follow this format:
+            Write the English message, then the word SEPARATOR, then the Urdu message.
             """
             
             response = llm.invoke(prompt).content
 
+            # --- IMPROVED SPLITTING LOGIC ---
             if "SEPARATOR" in response:
-                eng_msg, urdu_msg = response.split("SEPARATOR")
+                eng_msg, urdu_msg = response.split("SEPARATOR", 1) # '1' ensures it only splits once
+            elif "Urdu:" in response:
+                # Backup: try splitting by 'Urdu:' if it forgot 'SEPARATOR'
+                eng_msg, urdu_msg = response.split("Urdu:", 1)
             else:
-                eng_msg, urdu_msg = response, "معذرت، اس وقت اردو دستیاب نہیں ہے۔"
+                # If everything fails, show the whole response in English and a fallback in Urdu
+                eng_msg = response
+                urdu_msg = "آپ کی رہنمائی اوپر دی گئی ہے۔" 
 
             # Beautiful Display
             st.markdown(f"""
