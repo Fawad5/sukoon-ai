@@ -2,95 +2,113 @@ import streamlit as st
 from langchain_groq import ChatGroq
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
-import os
 
-# --- 1. CONFIG & STYLING ---
-st.set_page_config(page_title="Sukoon AI", page_icon="🌿", layout="centered")
+# --- 1. THE BEAUTY LAYER (CSS) ---
+st.set_page_config(page_title="Sukoon AI", page_icon="🌿")
 
-# Load Jameel Noori Nastaleeq for a beautiful Urdu experience
 st.markdown("""
-    <link href="https://cdn.jsdelivr.net/npm/jameel-noori@1.1.2/jameel-noori.min.css" rel="stylesheet">
     <style>
-    .urdu-font {
-        font-family: 'Jameel Noori', 'Jameel Noori Nastaleeq', serif;
-        direction: rtl;
-        text-align: right;
-        font-size: 24px;
-        line-height: 1.6;
-        color: #2e7d32;
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Urdu:wght@400;700&display=swap');
+    
+    .main-card {
+        border-radius: 15px;
+        padding: 20px;
+        background-color: #f0f4f2;
+        border-left: 5px solid #2e7d32;
+        margin-bottom: 20px;
     }
-    .english-font {
-        font-family: 'Source Sans Pro', sans-serif;
-        direction: ltr;
-        text-align: left;
+    
+    .english-text {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         font-size: 18px;
-        color: #333;
+        color: #2c3e50;
+        line-height: 1.6;
+        text-align: left;
+        direction: ltr;
     }
-    hr { margin: 20px 0; border: 0; border-top: 1px solid #eee; }
+    
+    .urdu-card {
+        background-color: #ffffff;
+        border-radius: 10px;
+        padding: 15px;
+        margin-top: 15px;
+        border-right: 5px solid #1b5e20;
+        box-shadow: 2px 2px 5px rgba(0,0,0,0.05);
+    }
+    
+    .urdu-text {
+        font-family: 'Noto Sans Urdu', serif;
+        font-size: 22px;
+        color: #1b5e20;
+        line-height: 2.0;
+        text-align: right;
+        direction: rtl;
+    }
+    
+    .hadith-label {
+        font-weight: bold;
+        color: #1b5e20;
+        font-size: 14px;
+        margin-bottom: 5px;
+    }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 2. INITIALIZE MODELS ---
-# Securely get API key from Streamlit Cloud Secrets
-GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
+# --- 2. LOGIC (Assuming resources are loaded as before) ---
+# [Insert your load_resources() function here]
 
-@st.cache_resource
-def load_resources():
-    # Free local embeddings
-    embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
-    # Load your local "Memory"
-    vector_db = FAISS.load_local("sukoon_index1", embeddings, allow_dangerous_deserialization=True)
-    # Fast free AI brain
-    llm = ChatGroq(api_key=GROQ_API_KEY, model_name="llama-3.3-70b-versatile")
-    return vector_db, llm
-
-vector_db, llm = load_resources()
-
-# --- 3. THE UI ---
-st.title("Sukoon AI (سکون)")
-st.write("🌿 *Your bilingual companion for spiritual peace.*")
-
-user_input = st.text_input("How are you feeling today? / آپ کیسا محسوس کر رہے ہیں؟")
+st.title("Sukoon AI | سکون")
+user_input = st.text_input("Share your heart... | اپنے دل کی بات بتائیں...")
 
 if user_input:
-    # A. Safety Check
-    if any(word in user_input.lower() for word in ["suicide", "hurt", "die", "khudkushi", "marna"]):
-        st.error("Please reach out to Umang Helpline (Lahore): 0311-7786264 immediately.")
-    else:
-        with st.spinner("Finding sukoon for you..."):
-            # B. Search local Islamic Library
-            docs = vector_db.similarity_search(user_input, k=1)
-            context = docs[0].page_content
+    with st.spinner("Reflecting..."):
+        # Search and Generate
+        docs = vector_db.similarity_search(user_input, k=1)
+        context = docs[0].page_content
+        
+        # Updated Prompt to force a clear split
+        prompt = f"""
+        User Input: {user_input}
+        Spiritual Context: {context}
+        
+        Role: Gentle Mentor. 
+        Task: Provide comfort.
+        
+        Format:
+        English: [Comforting message]
+        Hadith_Urdu: [The Urdu text of the Hadith/Ayah]
+        Explanation_Urdu: [A gentle Urdu explanation]
+        """
+        
+        response = llm.invoke(prompt).content
 
-            # C. Bilingual System Instruction
-            # We tell the AI exactly how to split the response
-            prompt = f"""
-            You are Sukoon AI, a gentle spiritual mentor for youth. 
-            For every response:
-            1. Provide a comforting message in English.
-            2. Provide the same message translated into clear, soft Urdu.
-            3. Always include the specific Hadith or Ayah in both Arabic (if available) and Urdu.
-            4. Format the output clearly so English is at the top and Urdu is at the bottom.
-            """
-            
-            response = llm.invoke(prompt).content
+        # --- 3. BEAUTIFUL DISPLAY LOGIC ---
+        # Splitting the response manually to avoid messiness
+        try:
+            # We assume the AI follows the format. We split by keywords.
+            parts = response.split("English:")[1].split("Hadith_Urdu:")
+            english_msg = parts[0].strip()
+            urdu_parts = parts[1].split("Explanation_Urdu:")
+            hadith_urdu = urdu_parts[0].strip()
+            explanation_urdu = urdu_parts[1].strip()
 
-            # D. Display Results
-            try:
-                # Split the AI's response into the two languages
-                eng_part, urdu_part = response.split("SEPARATOR")
-                
-                # Display English
-                st.markdown(f'<div class="english-font">{eng_part.replace("ENGLISH:", "").strip()}</div>', unsafe_allow_html=True)
-                
-                st.markdown("<hr>", unsafe_allow_html=True)
-                
-                # Display Urdu with proper font and RTL direction
-                st.markdown(f'<div class="urdu-font">{urdu_part.replace("URDU:", "").strip()}</div>', unsafe_allow_html=True)
-            
-            except:
-                # Fallback if AI forgets the separator
-                st.write(response)
+            # Display English Card
+            st.markdown(f"""
+                <div class="main-card">
+                    <div class="english-text">{english_msg}</div>
+                </div>
+            """, unsafe_allow_html=True)
 
-# --- 4. FOOTER ---
-st.caption("Sukoon AI provides spiritual support. For clinical emergencies, consult a professional.")
+            # Display Urdu Card
+            st.markdown(f"""
+                <div class="urdu-card">
+                    <div class="hadith-label">قرآنی رہنمائی / حدیث مبارکہ:</div>
+                    <div class="urdu-text">{hadith_urdu}</div>
+                    <hr>
+                    <div class="urdu-text" style="color: #444; font-size: 20px;">{explanation_urdu}</div>
+                </div>
+            """, unsafe_allow_html=True)
+
+        except Exception as e:
+            # Simple fallback if splitting fails
+            st.write(response)
