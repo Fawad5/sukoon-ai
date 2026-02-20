@@ -2,50 +2,95 @@ import streamlit as st
 from langchain_groq import ChatGroq
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
+import os
 
-# --- CONFIG ---
-st.set_page_config(page_title="Sukoon AI", page_icon="🌿")
+# --- 1. CONFIG & STYLING ---
+st.set_page_config(page_title="Sukoon AI", page_icon="🌿", layout="centered")
 
-# CUSTOM CSS: This makes Urdu text align to the right (RTL support)
+# Load Jameel Noori Nastaleeq for a beautiful Urdu experience
 st.markdown("""
+    <link href="https://cdn.jsdelivr.net/npm/jameel-noori@1.1.2/jameel-noori.min.css" rel="stylesheet">
     <style>
-    .rtl-text { direction: RTL; text-align: right; font-family: 'Jameel Noori Nastaleeq'; font-size: 20px; }
+    .urdu-font {
+        font-family: 'Jameel Noori', 'Jameel Noori Nastaleeq', serif;
+        direction: rtl;
+        text-align: right;
+        font-size: 24px;
+        line-height: 1.6;
+        color: #2e7d32;
+    }
+    .english-font {
+        font-family: 'Source Sans Pro', sans-serif;
+        direction: ltr;
+        text-align: left;
+        font-size: 18px;
+        color: #333;
+    }
+    hr { margin: 20px 0; border: 0; border-top: 1px solid #eee; }
     </style>
     """, unsafe_allow_html=True)
 
-# Access the key securely from the cloud settings
-groq_key = st.secrets["GROQ_API_KEY"]
+# --- 2. INITIALIZE MODELS ---
+# Securely get API key from Streamlit Cloud Secrets
+GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
 
-llm = ChatGroq(
-    api_key=groq_key, 
-    model_name="llama-3.3-70b-versatile"
-)
-
-# 2. Load your Local Library (Add a spinner here)
-with st.spinner("Waking up Sukoon AI's memory..."):
+@st.cache_resource
+def load_resources():
+    # Free local embeddings
     embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+    # Load your local "Memory"
     vector_db = FAISS.load_local("sukoon_index1", embeddings, allow_dangerous_deserialization=True)
-st.success("Ready to provide guidance!")
+    # Fast free AI brain
+    llm = ChatGroq(api_key=GROQ_API_KEY, model_name="llama-3.3-70b-versatile")
+    return vector_db, llm
 
-# --- THE UI ---
+vector_db, llm = load_resources()
+
+# --- 3. THE UI ---
 st.title("Sukoon AI (سکون)")
-st.write("Find spiritual peace and guidance.")
+st.write("🌿 *Your bilingual companion for spiritual peace.*")
 
-user_input = st.text_input("How are you feeling?")
+user_input = st.text_input("How are you feeling today? / آپ کیسا محسوس کر رہے ہیں؟")
 
 if user_input:
-    # A. Check for Emergency (Safety first!)
-    if any(word in user_input.lower() for word in ["suicide", "hurt", "die", "khudkushi"]):
+    # A. Safety Check
+    if any(word in user_input.lower() for word in ["suicide", "hurt", "die", "khudkushi", "marna"]):
         st.error("Please reach out to Umang Helpline (Lahore): 0311-7786264 immediately.")
     else:
-        # B. Search your local library
-        docs = vector_db.similarity_search(user_input, k=1)
-        best_match = docs[0].page_content
-        
-        # C. Generate compassionate response
-        prompt = f"User: {user_input}\nRetrieved Guidance: {best_match}\nAct as a gentle mentor. Respond with empathy."
-        response = llm.invoke(prompt)
-        
-        # D. Display response with Urdu support
-        st.markdown(f'<div class="rtl-text">{response.content}</div>', unsafe_allow_html=True)
+        with st.spinner("Finding sukoon for you..."):
+            # B. Search local Islamic Library
+            docs = vector_db.similarity_search(user_input, k=1)
+            context = docs[0].page_content
 
+            # C. Bilingual System Instruction
+            # We tell the AI exactly how to split the response
+            prompt = f"""
+            You are Sukoon AI, a gentle spiritual mentor for youth. 
+            For every response:
+            1. Provide a comforting message in English.
+            2. Provide the same message translated into clear, soft Urdu.
+            3. Always include the specific Hadith or Ayah in both Arabic (if available) and Urdu.
+            4. Format the output clearly so English is at the top and Urdu is at the bottom.
+            """
+            
+            response = llm.invoke(prompt).content
+
+            # D. Display Results
+            try:
+                # Split the AI's response into the two languages
+                eng_part, urdu_part = response.split("SEPARATOR")
+                
+                # Display English
+                st.markdown(f'<div class="english-font">{eng_part.replace("ENGLISH:", "").strip()}</div>', unsafe_allow_html=True)
+                
+                st.markdown("<hr>", unsafe_allow_html=True)
+                
+                # Display Urdu with proper font and RTL direction
+                st.markdown(f'<div class="urdu-font">{urdu_part.replace("URDU:", "").strip()}</div>', unsafe_allow_html=True)
+            
+            except:
+                # Fallback if AI forgets the separator
+                st.write(response)
+
+# --- 4. FOOTER ---
+st.caption("Sukoon AI provides spiritual support. For clinical emergencies, consult a professional.")
