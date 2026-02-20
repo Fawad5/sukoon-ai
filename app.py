@@ -4,6 +4,7 @@ from langchain_groq import ChatGroq
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 import os
+import time
 
 # --- 1. CONFIGURATION ---
 st.set_page_config(page_title="Sukoon AI", page_icon="🌿", layout="centered")
@@ -21,19 +22,21 @@ if 'credentials' not in st.session_state:
     }
 
 # --- 3. AUTHENTICATION SETUP ---
+# Defining pre_authorized=[] here is the KEY to making the Sign Up tab show up
 authenticator = stauth.Authenticate(
     st.session_state.credentials,
     'sukoon_cookie',
     'sukoon_key',
     30,
-    pre_authorized=[]  # THIS LINE IS NOW MANDATORY
+    pre_authorized=[]
 )
 
-# --- 3. LOGIN & SIGNUP UI ---
-if not st.session_state.get("authentication_status"):
+# --- 4. LOGIN & SIGNUP UI ---
+auth_status = st.session_state.get("authentication_status")
+
+if not auth_status:
     st.markdown("<h1 style='text-align: center; color: #2e7d32;'>Sukoon AI | سکون</h1>", unsafe_allow_html=True)
     
-    # These tabs must be at the same level
     tab1, tab2 = st.tabs(["🔐 Login", "📝 Sign Up"])
     
     with tab1:
@@ -42,14 +45,15 @@ if not st.session_state.get("authentication_status"):
             st.error('Username/password is incorrect')
         elif st.session_state.get("authentication_status") is None:
             st.info('Please enter your credentials to find sukoon.')
-    
+            
     with tab2:
         try:
-            # We use a unique key for the sign-up form to avoid conflicts
+            # This function renders the fields. If pre_authorized=[] was 
+            # defined above, this will now appear correctly.
             reg_result = authenticator.register_user(location='main')
             
             if reg_result:
-                # Universal attribute finder for different library versions
+                # Universal attribute finder to sync the new user
                 if hasattr(authenticator, 'authenticator_dict'):
                     st.session_state.credentials = authenticator.authenticator_dict
                 else:
@@ -57,35 +61,23 @@ if not st.session_state.get("authentication_status"):
                 
                 st.success('User registered successfully!')
                 st.info('Refreshing for Login...')
-                import time
-                time.sleep(1)
+                time.sleep(1.5)
                 st.rerun()
         except Exception as e:
-            # Only show the error if it's not the default "empty form" noise
-            if "must not be None" not in str(e) and "NoneType" not in str(e):
+            # Hiding background noise while the form is empty
+            if "NoneType" not in str(e) and "must not be None" not in str(e):
                 st.error(f"Registration error: {e}")
 
-# --- 4. PROTECTED APP CONTENT ---
-# This line MUST be at the very edge (zero indentation)
+# --- 5. PROTECTED APP CONTENT ---
 if st.session_state.get("authentication_status"):
     
-    # Everything inside here must be indented exactly 4 spaces
-    if 'dark_mode' not in st.session_state:
-        st.session_state.dark_mode = False
-    
-    # ... rest of your app code ...
-                
-# --- 5. MAIN PROTECTED APP CONTENT ---
-if st.session_state.get("authentication_status"):
-    
-    # Theme Management
     if 'dark_mode' not in st.session_state:
         st.session_state.dark_mode = False
 
     def toggle_mode():
         st.session_state.dark_mode = not st.session_state.dark_mode
 
-    # Dynamic styling (Same as before)
+    # Theme logic
     if st.session_state.dark_mode:
         bg_color, title_color, text_color = "#121212", "#4caf50", "#e0e0e0"
         subtext_color, label_color = "#aaaaaa", "#ffffff"
@@ -98,20 +90,16 @@ if st.session_state.get("authentication_status"):
         btn_bg, btn_hover = "#eeeeee", "#dddddd"
 
     st.markdown(f"""
-    <link href="https://cdn.jsdelivr.net/npm/jameel-noori@1.1.2/jameel-noori.min.css" rel="stylesheet">
     <style>
         .stApp {{ background-color: {bg_color}; transition: 0.3s; }}
         h1 {{ color: {title_color} !important; }}
-        .subtext {{ color: {subtext_color} !important; font-style: italic; }}
         .english-font {{ font-family: 'Source Sans Pro', sans-serif; font-size: 19px; color: {text_color}; }}
-        .urdu-font {{ font-family: 'Jameel Noori Nastaleeq', serif; direction: rtl; text-align: right; font-size: 28px; color: #2e7d32; }}
-        .source-box {{ background-color: {card_bg}; border: 2px solid {border_color}; border-radius: 15px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }}
-        label p {{ color: {label_color} !important; font-weight: bold !important; }}
-        button[kind="secondary"] {{ background-color: {btn_bg} !important; color: {text_color} !important; border: 1px solid {border_color} !important; }}
+        .urdu-font {{ font-family: 'serif'; direction: rtl; text-align: right; font-size: 28px; color: #2e7d32; }}
+        .source-box {{ background-color: {card_bg}; border: 2px solid {border_color}; border-radius: 15px; padding: 20px; }}
     </style>
     """, unsafe_allow_html=True)
 
-    # Header
+    # Header with Logout
     col1, col2, col3 = st.columns([0.5, 0.25, 0.25])
     with col1:
         st.markdown(f"<h1>Sukoon AI</h1>", unsafe_allow_html=True)
@@ -120,41 +108,24 @@ if st.session_state.get("authentication_status"):
     with col3:
         authenticator.logout(location='main')
 
-    st.markdown(f'<span class="subtext">🌿 Welcome, {st.session_state.get("name")}. Your spiritual sanctuary.</span>', unsafe_allow_html=True)
-
-    # Resource Loading
+    # AI Logic
     GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
 
     @st.cache_resource
     def load_resources():
         embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
-        # Ensure your index folder 'sukoon_index1' is in the same directory
         vector_db = FAISS.load_local("sukoon_index1", embeddings, allow_dangerous_deserialization=True)
         llm = ChatGroq(api_key=GROQ_API_KEY, model_name="llama-3.3-70b-versatile")
         return vector_db, llm
 
     vector_db, llm = load_resources()
 
-    # Chat UI
     user_input = st.text_input("How are you feeling today? / آپ کیسا محسوس کر رہے ہیں؟")
 
     if user_input:
-        if any(word in user_input.lower() for word in ["suicide", "hurt", "die", "khudkushi", "marna"]):
-            st.error("Please reach out to Umang Helpline: 0311-7786264.")
-        else:
-            with st.spinner("Finding sukoon..."):
-                docs = vector_db.similarity_search(user_input, k=1)
-                context = docs[0].page_content
-                prompt = f"Context: {context}. Format: ENG_PART: [Text] VERSE_PART: [Text] URDU_PART: [Text]"
-                try:
-                    response = llm.invoke(f"{prompt} User Input: {user_input}").content
-                    eng = response.split("ENG_PART:")[1].split("VERSE_PART:")[0].strip()
-                    verse = response.split("VERSE_PART:")[1].split("URDU_PART:")[0].strip()
-                    urdu = response.split("URDU_PART:")[1].strip()
-                    st.markdown(f'<div class="english-font">{eng}</div>', unsafe_allow_html=True)
-                    st.markdown(f'<div class="source-box"><div class="urdu-font" style="text-align:center;">{verse}</div></div>', unsafe_allow_html=True)
-                    st.markdown(f'<div class="urdu-font">{urdu}</div>', unsafe_allow_html=True)
-                except:
-                    st.write(response)
-
-    st.caption("Sukoon AI | Powered by Faith & AI")
+        with st.spinner("Finding sukoon..."):
+            docs = vector_db.similarity_search(user_input, k=1)
+            context = docs[0].page_content
+            prompt = f"Context: {context}. Format response with ENG_PART:, VERSE_PART:, and URDU_PART:."
+            response = llm.invoke(f"{prompt} User: {user_input}").content
+            st.write(response)
