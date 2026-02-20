@@ -7,48 +7,60 @@ import os
 # --- 1. CONFIG ---
 st.set_page_config(page_title="Sukoon AI", page_icon="🌿", layout="centered")
 
-# --- 2. STYLING (Injected separately to avoid text errors) ---
-st.markdown("""
+# --- 2. THEME STATE ---
+if 'dark_mode' not in st.session_state:
+    st.session_state.dark_mode = False
+
+def toggle_mode():
+    st.session_state.dark_mode = not st.session_state.dark_mode
+
+# --- 3. STYLING (Dynamic based on Toggle) ---
+bg_color = "#121212" if st.session_state.dark_mode else "#ffffff"
+text_color = "#e0e0e0" if st.session_state.dark_mode else "#333333"
+card_bg = "rgba(255, 255, 255, 0.05)" if st.session_state.dark_mode else "rgba(46, 125, 50, 0.05)"
+border_color = "#4caf50" if st.session_state.dark_mode else "#2e7d32"
+
+st.markdown(f"""
 <link href="https://cdn.jsdelivr.net/npm/jameel-noori@1.1.2/jameel-noori.min.css" rel="stylesheet">
 <style>
-    .english-font {
+    .stApp {{
+        background-color: {bg_color};
+        transition: 0.3s;
+    }}
+    .english-font {{
         font-family: 'Source Sans Pro', sans-serif;
-        direction: ltr;
-        text-align: left;
         font-size: 19px;
-        color: #333;
+        color: {text_color};
         line-height: 1.6;
-    }
-    .urdu-font {
+    }}
+    .urdu-font {{
         font-family: 'Jameel Noori', 'Jameel Noori Nastaleeq', serif;
         direction: rtl;
         text-align: right;
         font-size: 26px;
         line-height: 1.8;
         color: #2e7d32;
-    }
-    .source-box {
-        background-color: rgba(46, 125, 50, 0.05);
-        border: 2px solid #2e7d32;
+    }}
+    .source-box {{
+        background-color: {card_bg};
+        border: 2px solid {border_color};
         border-radius: 15px;
         padding: 25px;
         margin: 25px 0;
         text-align: center;
-        box-shadow: 2px 5px 15px rgba(0,0,0,0.05);
-    }
-    .source-label {
+    }}
+    .source-label {{
         font-size: 14px;
-        color: #1b5e20;
+        color: {border_color};
         font-weight: bold;
         text-transform: uppercase;
         display: block;
         margin-bottom: 12px;
-        letter-spacing: 1px;
-    }
+    }}
 </style>
 """, unsafe_allow_html=True)
 
-# --- 3. INITIALIZE MODELS ---
+# --- 4. INITIALIZE MODELS ---
 GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
 
 @st.cache_resource
@@ -60,8 +72,14 @@ def load_resources():
 
 vector_db, llm = load_resources()
 
-# --- 4. THE UI ---
-st.title("Sukoon AI (سکون)")
+# --- 5. THE UI ---
+col1, col2 = st.columns([0.8, 0.2])
+with col1:
+    st.title("Sukoon AI (سکون)")
+with col2:
+    mode_label = "☀️ Light" if st.session_state.dark_mode else "🌙 Night"
+    st.button(mode_label, on_click=toggle_mode)
+
 st.write("🌿 *Your bilingual companion for spiritual peace.*")
 
 user_input = st.text_input("How are you feeling today? / آپ کیسا محسوس کر رہے ہیں؟")
@@ -91,10 +109,8 @@ if user_input:
                 verse_text = response.split("VERSE_PART:")[1].split("URDU_PART:")[0].strip()
                 urdu_text = response.split("URDU_PART:")[1].strip()
 
-                # 1. English
                 st.markdown(f'<div class="english-font">{eng_text}</div>', unsafe_allow_html=True)
 
-                # 2. Verse Box
                 st.markdown(f"""
                     <div class="source-box">
                         <span class="source-label">Divine Guidance / وحی کی روشنی</span>
@@ -102,7 +118,6 @@ if user_input:
                     </div>
                 """, unsafe_allow_html=True)
 
-                # 3. Urdu
                 st.markdown(f'<div class="urdu-font">{urdu_text}</div>', unsafe_allow_html=True)
 
             except:
