@@ -26,7 +26,7 @@ authenticator = stauth.Authenticate(
     'sukoon_cookie',
     'sukoon_key',
     30,
-    pre_authorized=[]  # ADD THIS LINE HERE
+    pre_authorized=[]  # THIS LINE IS NOW MANDATORY
 )
 
 # --- 4. LOGIN & SIGNUP UI ---
@@ -47,32 +47,31 @@ if not auth_status:
         elif st.session_state.get("authentication_status") is None:
             st.info('Please enter your credentials to find sukoon.')
     
-    with tab2:
+   with tab2:
         try:
-            # location='main' places the form in the center
+            # ONLY use location='main' here. Do not add pre_authorized here.
             reg_result = authenticator.register_user(location='main')
             
             if reg_result:
-                # UNIVERSAL FIX: This looks for whatever the library named the dict
+                # Same universal fix from before to avoid attribute errors
                 if hasattr(authenticator, 'authenticator_dict'):
                     st.session_state.credentials = authenticator.authenticator_dict
-                elif hasattr(authenticator, 'credentials'):
-                    st.session_state.credentials = authenticator.credentials
                 else:
-                    # If all else fails, use the internal config
-                    st.session_state.credentials = authenticator.config['credentials']
+                    st.session_state.credentials = authenticator.credentials
                 
                 st.success('User registered successfully!')
                 st.info('Refreshing for Login...')
                 
                 import time
-                time.sleep(1) 
+                time.sleep(1)
                 st.rerun()
                 
         except Exception as e:
-            # This hides the 'AttributeError' while you are just looking at the page
-            if "authenticator_dict" not in str(e) and "NoneType" not in str(e):
+            # This logic prevents the error message from appearing 
+            # while you're just looking at the empty form.
+            if "must not be None" not in str(e) and "NoneType" not in str(e):
                 st.error(f"Registration error: {e}")
+                
 # --- 5. MAIN PROTECTED APP CONTENT ---
 if st.session_state.get("authentication_status"):
     
