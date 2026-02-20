@@ -24,7 +24,7 @@ st.markdown("""
         direction: ltr;
         text-align: left;
         font-size: 18px;
-        color: #333;
+        color: #f7faf2;
     }
     /* New Beautiful Container for Hadith/Ayah */
     .source-box {
@@ -101,7 +101,7 @@ if user_input:
                 st.markdown(f"""
                     <div class="source-box">
                         <span class="source-label">Divine Guidance / وحی کی روشنی</span>
-                        <div class="urdu-font" style="text-align: center; color: #1b5e20;">{verse_text}</div>
+                        <div class="urdu-font" style="text-align: center; color: #a9f01a;">{verse_text}</div>
                     </div>
                 """, unsafe_allow_html=True)
 
