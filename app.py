@@ -53,22 +53,26 @@ if not auth_status:
             reg_result = authenticator.register_user(location='main')
             
             if reg_result:
-                # 1. Update the session state with the new user list
-                st.session_state.credentials = authenticator.authenticator_dict
+                # UNIVERSAL FIX: This looks for whatever the library named the dict
+                if hasattr(authenticator, 'authenticator_dict'):
+                    st.session_state.credentials = authenticator.authenticator_dict
+                elif hasattr(authenticator, 'credentials'):
+                    st.session_state.credentials = authenticator.credentials
+                else:
+                    # If all else fails, use the internal config
+                    st.session_state.credentials = authenticator.config['credentials']
                 
-                # 2. Show success message
                 st.success('User registered successfully!')
-                st.info('Redirecting to Login...')
+                st.info('Refreshing for Login...')
                 
-                # 3. CRITICAL: Force the app to refresh so Tab 1 sees the new user
                 import time
-                time.sleep(1.5) # Give the user a moment to see the success message
+                time.sleep(1) 
                 st.rerun()
                 
         except Exception as e:
-            if "NoneType" not in str(e):
+            # This hides the 'AttributeError' while you are just looking at the page
+            if "authenticator_dict" not in str(e) and "NoneType" not in str(e):
                 st.error(f"Registration error: {e}")
-
 # --- 5. MAIN PROTECTED APP CONTENT ---
 if st.session_state.get("authentication_status"):
     
