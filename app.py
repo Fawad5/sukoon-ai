@@ -35,17 +35,24 @@ if not st.session_state.get("authentication_status"):
     tab1, tab2 = st.tabs(["🔐 Login", "📝 Sign Up"])
     
     with tab1:
-        name, authentication_status, username = authenticator.login('main')
+        # UPDATED: In the new version, .login() only takes the location ('main' or 'sidebar')
+        # It handles 'name', 'authentication_status', and 'username' internally in st.session_state
+        authenticator.login(location='main')
     
     with tab2:
         try:
-            if authenticator.register_user('Register user', pre_authorization=False):
+            # Fixed registration call
+            if authenticator.register_user(location='main', pre_authorization=False):
                 st.success('User registered successfully! Please switch to Login tab.')
         except Exception as e:
             st.error(f"Registration error: {e}")
 
+# Check status from session_state instead of variables
+authentication_status = st.session_state.get("authentication_status")
 # --- 4. PROTECTED APP CONTENT ---
-if st.session_state["authentication_status"]:
+with col3:
+        # UPDATED: Logout now also uses specific location logic
+        authenticator.logout(button_name='Logout', location='main')
     
     # --- THEME STATE ---
     if 'dark_mode' not in st.session_state:
