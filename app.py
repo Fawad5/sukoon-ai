@@ -34,18 +34,28 @@ if not st.session_state.get("authentication_status"):
     tab1, tab2 = st.tabs(["🔐 Login", "📝 Sign Up"])
     
     with tab1:
+        # This handles the login process
         authenticator.login(location='main')
+        
+        # We only show the warning/error messages INSIDE the login tab
+        if st.session_state.get("authentication_status") is False:
+            st.error('Username/password is incorrect')
+        elif st.session_state.get("authentication_status") is None:
+            st.warning('Please enter your username and password')
     
     with tab2:
         try:
-            # Capturing the result of registration
-            # result is (email, username, name) if successful, None otherwise
-            result = authenticator.register_user(location='main', pre_authorized=[])
-            if result:
+            # register_user returns a tuple of (email, username, name) upon success
+            # Otherwise it returns None or False
+            reg_result = authenticator.register_user(location='main', pre_authorized=[])
+            
+            if reg_result:
+                # reg_result is only Truthy if someone actually clicked 'Register' successfully
                 st.success('User registered successfully! Please switch to the Login tab.')
-                # UPDATED: Use authenticator_dict for newer versions
+                # Sync the internal dict back to our session state
                 st.session_state.credentials = authenticator.authenticator_dict
         except Exception as e:
+            # Only show error if registration actually fails (e.g. username taken)
             st.error(f"Registration error: {e}")
 
 # --- 4. PROTECTED APP CONTENT ---
