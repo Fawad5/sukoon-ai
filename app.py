@@ -17,7 +17,7 @@ st.markdown("""
         text-align: right;
         font-size: 24px;
         line-height: 1.6;
-        color: #2e7d32;
+        color: #0287e6;
     }
     .english-font {
         font-family: 'Source Sans Pro', sans-serif;
