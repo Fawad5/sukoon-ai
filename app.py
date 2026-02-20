@@ -7,7 +7,7 @@ import os
 # --- 1. CONFIG & STYLING ---
 st.set_page_config(page_title="Sukoon AI", page_icon="🌿", layout="centered")
 
-# Load Jameel Noori Nastaleeq and styling
+# Proper CSS Injection to prevent raw code from showing
 st.markdown("""
     <link href="https://cdn.jsdelivr.net/npm/jameel-noori@1.1.2/jameel-noori.min.css" rel="stylesheet">
     <style>
@@ -26,8 +26,6 @@ st.markdown("""
         font-size: 18px;
         color: #333;
     }
-    
-    /* Beautiful Container for Hadith/Ayah */
     .source-box {
         background-color: rgba(46, 125, 50, 0.05);
         border: 1px solid #2e7d32;
@@ -36,9 +34,7 @@ st.markdown("""
         margin: 20px 0;
         position: relative;
         text-align: center;
-        box-shadow: 2px 2px 10px rgba(0,0,0,0.05);
     }
-    
     .source-label {
         font-size: 12px;
         color: #2e7d32;
@@ -47,8 +43,6 @@ st.markdown("""
         display: block;
         margin-bottom: 10px;
     }
-
-    /* Beautiful Copy Button Styling */
     .copy-btn {
         position: absolute;
         top: 10px;
@@ -60,22 +54,19 @@ st.markdown("""
         padding: 5px 10px;
         font-size: 12px;
         cursor: pointer;
-        transition: 0.3s;
     }
-    .copy-btn:hover { background-color: #1b5e20; }
-    
     hr { margin: 20px 0; border: 0; border-top: 1px solid #eee; }
     </style>
 
     <script>
     function copyToClipboard(text) {
-        navigator.clipboard.writeText(text).then(function() {
-            const btn = document.getElementById("copy-button-ui");
-            btn.innerHTML = "Copied!";
-            setTimeout(() => { btn.innerHTML = "Copy Verse"; }, 2000);
-        }, function(err) {
-            console.error('Could not copy text: ', err);
-        });
+        const tempInput = document.createElement("textarea");
+        tempInput.value = text;
+        document.body.appendChild(tempInput);
+        tempInput.select();
+        document.execCommand("copy");
+        document.body.removeChild(tempInput);
+        alert("Verse copied to clipboard!");
     }
     </script>
     """, unsafe_allow_html=True)
@@ -107,44 +98,42 @@ if user_input:
             context = docs[0].page_content
 
             prompt = f"""
-            You are Sukoon AI, a gentle spiritual mentor.
+            You are Sukoon AI.
             Context: {context}
             User Input: {user_input}
 
             Format your response exactly as follows:
-            ENG_PART: [Your comforting English message]
-            VERSE_PART: [The specific Hadith or Ayah in Arabic/Urdu from the context]
-            URDU_PART: [Your comforting Urdu translation/message]
+            ENG_PART: [English message]
+            VERSE_PART: [Hadith or Ayah]
+            URDU_PART: [Urdu message]
             """
             
             response = llm.invoke(prompt).content
 
             try:
-                # D. DISPLAY LOGIC
                 eng_text = response.split("ENG_PART:")[1].split("VERSE_PART:")[0].strip()
                 verse_text = response.split("VERSE_PART:")[1].split("URDU_PART:")[0].strip()
                 urdu_text = response.split("URDU_PART:")[1].strip()
 
-                # 1. Display English Guidance
+                # Display English
                 st.markdown(f'<div class="english-font">{eng_text}</div>', unsafe_allow_html=True)
 
-                # 2. Display Beautiful Verse Container with Copy Button
-                # We clean the text for the JavaScript function
-                clean_verse = verse_text.replace("'", "\\'").replace('"', '\\"')
+                # Display Verse Container with Copy Button
+                # Clean text for JavaScript
+                js_verse = verse_text.replace("'", "").replace('"', "")
                 
                 st.markdown(f"""
                     <div class="source-box">
-                        <button id="copy-button-ui" class="copy-btn" onclick="copyToClipboard('{clean_verse}')">Copy Verse</button>
+                        <button class="copy-btn" onclick="copyToClipboard('{js_verse}')">Copy</button>
                         <span class="source-label">Divine Guidance / وحی کی روشنی</span>
-                        <div id="hadith-content" class="urdu-font" style="text-align: center; color: #1b5e20;">{verse_text}</div>
+                        <div class="urdu-font" style="text-align: center; color: #1b5e20;">{verse_text}</div>
                     </div>
                 """, unsafe_allow_html=True)
 
-                # 3. Display Urdu Guidance
+                # Display Urdu
                 st.markdown(f'<div class="urdu-font">{urdu_text}</div>', unsafe_allow_html=True)
 
             except:
-                st.info("Guidance Found:")
                 st.write(response)
 
 # --- 4. FOOTER ---
