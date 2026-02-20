@@ -28,6 +28,7 @@ authenticator = stauth.Authenticate(
 )
 
 # --- 3. LOGIN & SIGNUP UI ---
+# Check if user is NOT logged in
 if not st.session_state.get("authentication_status"):
     st.markdown("<h1 style='text-align: center; color: #2e7d32;'>Sukoon AI | سکون</h1>", unsafe_allow_html=True)
     tab1, tab2 = st.tabs(["🔐 Login", "📝 Sign Up"])
@@ -37,24 +38,26 @@ if not st.session_state.get("authentication_status"):
     
     with tab2:
         try:
-            if authenticator.register_user(location='main', pre_authorized=[]):
+            # Capturing the result of registration
+            # result is (email, username, name) if successful, None otherwise
+            result = authenticator.register_user(location='main', pre_authorized=[])
+            if result:
                 st.success('User registered successfully! Please switch to the Login tab.')
+                # UPDATED: Use authenticator_dict for newer versions
                 st.session_state.credentials = authenticator.authenticator_dict
         except Exception as e:
             st.error(f"Registration error: {e}")
 
 # --- 4. PROTECTED APP CONTENT ---
-# This block only runs if the user is logged in
 if st.session_state.get("authentication_status"):
     
-    # All code below is indented exactly 4 spaces
     if 'dark_mode' not in st.session_state:
         st.session_state.dark_mode = False
 
     def toggle_mode():
         st.session_state.dark_mode = not st.session_state.dark_mode
 
-    # Dynamic styling variables
+    # Theme variables
     if st.session_state.dark_mode:
         bg_color, title_color, text_color = "#121212", "#4caf50", "#e0e0e0"
         subtext_color, label_color = "#aaaaaa", "#ffffff"
@@ -81,7 +84,6 @@ if st.session_state.get("authentication_status"):
     </style>
     """, unsafe_allow_html=True)
 
-    # UI Header
     col1, col2, col3 = st.columns([0.5, 0.25, 0.25])
     with col1:
         st.markdown(f"<h1>Sukoon AI</h1>", unsafe_allow_html=True)
@@ -104,7 +106,6 @@ if st.session_state.get("authentication_status"):
 
     vector_db, llm = load_resources()
 
-    # Chat logic
     user_input = st.text_input("How are you feeling today? / آپ کیسا محسوس کر رہے ہیں؟")
 
     if user_input:
@@ -126,8 +127,8 @@ if st.session_state.get("authentication_status"):
                 except:
                     st.write(response)
 
-# Login Status Handling
-elif st.session_state["authentication_status"] is False:
+# Login Status Handling at the very bottom
+elif st.session_state.get("authentication_status") is False:
     st.error('Username/password is incorrect')
-elif st.session_state["authentication_status"] is None:
+elif st.session_state.get("authentication_status") is None:
     st.warning('Please enter your username and password')
