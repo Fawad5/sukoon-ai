@@ -11,31 +11,48 @@ st.set_page_config(page_title="Sukoon AI", page_icon="🌿", layout="centered")
 st.markdown("""
     <link href="https://cdn.jsdelivr.net/npm/jameel-noori@1.1.2/jameel-noori.min.css" rel="stylesheet">
     <style>
-    .urdu-font {
-        font-family: 'Jameel Noori', 'Jameel Noori Nastaleeq', serif;
-        direction: rtl;
-        text-align: right;
-        font-size: 24px;
-        line-height: 1.6;
-        color: #2e7d32;
-    }
+    /* English Font Styling */
     .english-font {
         font-family: 'Source Sans Pro', sans-serif;
         direction: ltr;
         text-align: left;
-        font-size: 18px;
-        color: #333;
+        font-size: 19px;
+        color: #ebf5ee;
+        line-height: 1.6;
     }
-    /* Style for the Label above the Hadith box */
+    
+    /* Urdu Font Styling */
+    .urdu-font {
+        font-family: 'Jameel Noori', 'Jameel Noori Nastaleeq', serif;
+        direction: rtl;
+        text-align: right;
+        font-size: 26px;
+        line-height: 1.8;
+        color: #0c3bf5;
+    }
+    
+    /* Beautiful Separate Container for Hadith/Ayah */
+    .source-box {
+        background-color: rgba(46, 125, 50, 0.05);
+        border: 2px solid #2e7d32;
+        border-radius: 15px;
+        padding: 25px;
+        margin: 25px 0;
+        text-align: center;
+        box-shadow: 2px 5px 15px rgba(0,0,0,0.05);
+    }
+    
     .source-label {
-        font-size: 13px;
-        color: #2e7d32;
+        font-size: 14px;
+        color: #1b5e20;
         font-weight: bold;
         text-transform: uppercase;
-        margin-top: 20px;
-        margin-bottom: 5px;
         display: block;
+        margin-bottom: 12px;
+        letter-spacing: 1px;
     }
+
+    hr { margin: 30px 0; border: 0; border-top: 1px solid #eee; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -58,6 +75,7 @@ st.write("🌿 *Your bilingual companion for spiritual peace.*")
 user_input = st.text_input("How are you feeling today? / آپ کیسا محسوس کر رہے ہیں؟")
 
 if user_input:
+    # Safety Check
     if any(word in user_input.lower() for word in ["suicide", "hurt", "die", "khudkushi", "marna"]):
         st.error("Please reach out to Umang Helpline (Lahore): 0311-7786264 immediately.")
     else:
@@ -65,6 +83,7 @@ if user_input:
             docs = vector_db.similarity_search(user_input, k=1)
             context = docs[0].page_content
 
+            # Prompt structured for the 3-part layout
             prompt = f"""
             You are Sukoon AI.
             Context: {context}
@@ -79,23 +98,27 @@ if user_input:
             response = llm.invoke(prompt).content
 
             try:
-                # Splitting the response
+                # Splitting logic
                 eng_text = response.split("ENG_PART:")[1].split("VERSE_PART:")[0].strip()
                 verse_text = response.split("VERSE_PART:")[1].split("URDU_PART:")[0].strip()
                 urdu_text = response.split("URDU_PART:")[1].strip()
 
-                # 1. Display English
+                # 1. English Guidance
                 st.markdown(f'<div class="english-font">{eng_text}</div>', unsafe_allow_html=True)
 
-                # 2. Display Native Streamlit Copy-able Box
-                st.markdown('<span class="source-label">Divine Guidance / وحی کی روشنی</span>', unsafe_allow_html=True)
-                # This 'st.code' block has a built-in copy button that works everywhere
-                st.code(verse_text, language=None)
+                # 2. Beautiful Verse Container
+                st.markdown(f"""
+                    <div class="source-box">
+                        <span class="source-label">Divine Guidance / وحی کی روشنی</span>
+                        <div class="urdu-font" style="text-align: center; color: #32a852;">{verse_text}</div>
+                    </div>
+                """, unsafe_allow_html=True)
 
-                # 3. Display Urdu
+                # 3. Urdu Guidance
                 st.markdown(f'<div class="urdu-font">{urdu_text}</div>', unsafe_allow_html=True)
 
-            except Exception as e:
+            except:
+                # Fallback if AI misses markers
                 st.write(response)
 
 # --- 4. FOOTER ---
