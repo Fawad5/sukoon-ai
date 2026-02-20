@@ -29,31 +29,27 @@ authenticator = stauth.Authenticate(
     pre_authorized=[]  # THIS LINE IS NOW MANDATORY
 )
 
-# --- 4. LOGIN & SIGNUP UI ---
-# We check the status at the very beginning
-auth_status = st.session_state.get("authentication_status")
-
-if not auth_status:
+# --- 3. LOGIN & SIGNUP UI ---
+if not st.session_state.get("authentication_status"):
     st.markdown("<h1 style='text-align: center; color: #2e7d32;'>Sukoon AI | سکون</h1>", unsafe_allow_html=True)
+    
+    # These tabs must be at the same level
     tab1, tab2 = st.tabs(["🔐 Login", "📝 Sign Up"])
     
     with tab1:
-        # We handle login here. 'fields' argument helps prevent some default messages
         authenticator.login(location='main')
-        
-        # Only show messages if the user HAS attempted to log in
         if st.session_state.get("authentication_status") is False:
             st.error('Username/password is incorrect')
         elif st.session_state.get("authentication_status") is None:
             st.info('Please enter your credentials to find sukoon.')
     
-   with tab2:
+    with tab2:
         try:
-            # ONLY use location='main' here. Do not add pre_authorized here.
+            # We use a unique key for the sign-up form to avoid conflicts
             reg_result = authenticator.register_user(location='main')
             
             if reg_result:
-                # Same universal fix from before to avoid attribute errors
+                # Universal attribute finder for different library versions
                 if hasattr(authenticator, 'authenticator_dict'):
                     st.session_state.credentials = authenticator.authenticator_dict
                 else:
@@ -61,16 +57,23 @@ if not auth_status:
                 
                 st.success('User registered successfully!')
                 st.info('Refreshing for Login...')
-                
                 import time
                 time.sleep(1)
                 st.rerun()
-                
         except Exception as e:
-            # This logic prevents the error message from appearing 
-            # while you're just looking at the empty form.
+            # Only show the error if it's not the default "empty form" noise
             if "must not be None" not in str(e) and "NoneType" not in str(e):
                 st.error(f"Registration error: {e}")
+
+# --- 4. PROTECTED APP CONTENT ---
+# This line MUST be at the very edge (zero indentation)
+if st.session_state.get("authentication_status"):
+    
+    # Everything inside here must be indented exactly 4 spaces
+    if 'dark_mode' not in st.session_state:
+        st.session_state.dark_mode = False
+    
+    # ... rest of your app code ...
                 
 # --- 5. MAIN PROTECTED APP CONTENT ---
 if st.session_state.get("authentication_status"):
