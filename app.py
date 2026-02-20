@@ -49,15 +49,25 @@ if not auth_status:
     
     with tab2:
         try:
-            # REMOVE the pre_authorized=[] from here
+            # location='main' places the form in the center
             reg_result = authenticator.register_user(location='main')
             
             if reg_result:
-                st.success('User registered successfully! Please go to the Login tab.')
+                # 1. Update the session state with the new user list
                 st.session_state.credentials = authenticator.authenticator_dict
+                
+                # 2. Show success message
+                st.success('User registered successfully!')
+                st.info('Redirecting to Login...')
+                
+                # 3. CRITICAL: Force the app to refresh so Tab 1 sees the new user
+                import time
+                time.sleep(1.5) # Give the user a moment to see the success message
+                st.rerun()
+                
         except Exception as e:
-            # This handles the "User not pre-authorized" or other errors
-            st.error(f"Registration error: {e}")
+            if "NoneType" not in str(e):
+                st.error(f"Registration error: {e}")
 
 # --- 5. MAIN PROTECTED APP CONTENT ---
 if st.session_state.get("authentication_status"):
