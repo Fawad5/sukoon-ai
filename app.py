@@ -13,8 +13,13 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# 1. Load your Free 'Brain' (Get a free key from console.groq.com)
-llm = ChatGroq(api_key="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", model_name="llama-3.3-70b-versatile")
+# Access the key securely from the cloud settings
+groq_key = st.secrets["GROQ_API_KEY"]
+
+llm = ChatGroq(
+    api_key=groq_key, 
+    model_name="llama-3.3-70b-versatile"
+)
 
 # 2. Load your Local Library (Add a spinner here)
 with st.spinner("Waking up Sukoon AI's memory..."):
