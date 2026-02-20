@@ -1,6 +1,6 @@
 streamlit
 langchain-groq
+langchain-community
 langchain-huggingface
 faiss-cpu
-pandas
 sentence-transformers
