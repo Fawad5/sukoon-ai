@@ -8,7 +8,7 @@ import os
 # --- 1. CONFIGURATION ---
 st.set_page_config(page_title="Sukoon AI", page_icon="🌿", layout="centered")
 
-# --- 2. AUTHENTICATION LOGIC ---
+# --- 2. INITIALIZE SESSION STATE ---
 if 'credentials' not in st.session_state:
     st.session_state.credentials = {
         'usernames': {
@@ -20,6 +20,7 @@ if 'credentials' not in st.session_state:
         }
     }
 
+# --- 3. AUTHENTICATION SETUP ---
 authenticator = stauth.Authenticate(
     st.session_state.credentials,
     'sukoon_cookie',
@@ -27,47 +28,48 @@ authenticator = stauth.Authenticate(
     30
 )
 
-# --- 3. LOGIN & SIGNUP UI ---
-# Check if user is NOT logged in
-if not st.session_state.get("authentication_status"):
+# --- 4. LOGIN & SIGNUP UI ---
+# We check the status at the very beginning
+auth_status = st.session_state.get("authentication_status")
+
+if not auth_status:
     st.markdown("<h1 style='text-align: center; color: #2e7d32;'>Sukoon AI | سکون</h1>", unsafe_allow_html=True)
     tab1, tab2 = st.tabs(["🔐 Login", "📝 Sign Up"])
     
     with tab1:
-        # This handles the login process
+        # We handle login here. 'fields' argument helps prevent some default messages
         authenticator.login(location='main')
         
-        # We only show the warning/error messages INSIDE the login tab
+        # Only show messages if the user HAS attempted to log in
         if st.session_state.get("authentication_status") is False:
             st.error('Username/password is incorrect')
         elif st.session_state.get("authentication_status") is None:
-            st.warning('Please enter your username and password')
+            st.info('Please enter your credentials to find sukoon.')
     
     with tab2:
         try:
-            # register_user returns a tuple of (email, username, name) upon success
-            # Otherwise it returns None or False
+            # We only allow registration if NOT logged in
             reg_result = authenticator.register_user(location='main', pre_authorized=[])
-            
             if reg_result:
-                # reg_result is only Truthy if someone actually clicked 'Register' successfully
-                st.success('User registered successfully! Please switch to the Login tab.')
-                # Sync the internal dict back to our session state
+                st.success('User registered successfully! Please go to the Login tab.')
+                # Sync credentials using the correct dictionary attribute
                 st.session_state.credentials = authenticator.authenticator_dict
         except Exception as e:
-            # Only show error if registration actually fails (e.g. username taken)
-            st.error(f"Registration error: {e}")
+            # Only show error if registration actually fails
+            if "NoneType" not in str(e): # Filter out internal library noise
+                st.error(f"Registration error: {e}")
 
-# --- 4. PROTECTED APP CONTENT ---
+# --- 5. MAIN PROTECTED APP CONTENT ---
 if st.session_state.get("authentication_status"):
     
+    # Theme Management
     if 'dark_mode' not in st.session_state:
         st.session_state.dark_mode = False
 
     def toggle_mode():
         st.session_state.dark_mode = not st.session_state.dark_mode
 
-    # Theme variables
+    # Dynamic styling (Same as before)
     if st.session_state.dark_mode:
         bg_color, title_color, text_color = "#121212", "#4caf50", "#e0e0e0"
         subtext_color, label_color = "#aaaaaa", "#ffffff"
@@ -83,17 +85,17 @@ if st.session_state.get("authentication_status"):
     <link href="https://cdn.jsdelivr.net/npm/jameel-noori@1.1.2/jameel-noori.min.css" rel="stylesheet">
     <style>
         .stApp {{ background-color: {bg_color}; transition: 0.3s; }}
-        .subtext {{ color: {subtext_color} !important; font-style: italic; display: block; margin-bottom: 20px; }}
-        label p {{ color: {label_color} !important; font-weight: bold !important; font-size: 1.1rem !important; }}
         h1 {{ color: {title_color} !important; }}
-        .english-font {{ font-family: 'Source Sans Pro', sans-serif; font-size: 19px; color: {text_color}; line-height: 1.6; }}
-        .urdu-font {{ font-family: 'Jameel Noori', 'Jameel Noori Nastaleeq', serif; direction: rtl; text-align: right; font-size: 28px; line-height: 1.8; color: #2e7d32; }}
-        .source-box {{ background-color: {card_bg}; border: 2px solid {border_color}; border-radius: 15px; padding: 25px; margin: 25px 0; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }}
-        .source-label {{ font-size: 14px; color: {border_color}; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 12px; }}
+        .subtext {{ color: {subtext_color} !important; font-style: italic; }}
+        .english-font {{ font-family: 'Source Sans Pro', sans-serif; font-size: 19px; color: {text_color}; }}
+        .urdu-font {{ font-family: 'Jameel Noori Nastaleeq', serif; direction: rtl; text-align: right; font-size: 28px; color: #2e7d32; }}
+        .source-box {{ background-color: {card_bg}; border: 2px solid {border_color}; border-radius: 15px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }}
+        label p {{ color: {label_color} !important; font-weight: bold !important; }}
         button[kind="secondary"] {{ background-color: {btn_bg} !important; color: {text_color} !important; border: 1px solid {border_color} !important; }}
     </style>
     """, unsafe_allow_html=True)
 
+    # Header
     col1, col2, col3 = st.columns([0.5, 0.25, 0.25])
     with col1:
         st.markdown(f"<h1>Sukoon AI</h1>", unsafe_allow_html=True)
@@ -102,7 +104,7 @@ if st.session_state.get("authentication_status"):
     with col3:
         authenticator.logout(location='main')
 
-    st.markdown(f'<span class="subtext">🌿 Welcome, {st.session_state["name"]}.</span>', unsafe_allow_html=True)
+    st.markdown(f'<span class="subtext">🌿 Welcome, {st.session_state.get("name")}. Your spiritual sanctuary.</span>', unsafe_allow_html=True)
 
     # Resource Loading
     GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
@@ -110,12 +112,14 @@ if st.session_state.get("authentication_status"):
     @st.cache_resource
     def load_resources():
         embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+        # Ensure your index folder 'sukoon_index1' is in the same directory
         vector_db = FAISS.load_local("sukoon_index1", embeddings, allow_dangerous_deserialization=True)
         llm = ChatGroq(api_key=GROQ_API_KEY, model_name="llama-3.3-70b-versatile")
         return vector_db, llm
 
     vector_db, llm = load_resources()
 
+    # Chat UI
     user_input = st.text_input("How are you feeling today? / آپ کیسا محسوس کر رہے ہیں؟")
 
     if user_input:
@@ -132,13 +136,9 @@ if st.session_state.get("authentication_status"):
                     verse = response.split("VERSE_PART:")[1].split("URDU_PART:")[0].strip()
                     urdu = response.split("URDU_PART:")[1].strip()
                     st.markdown(f'<div class="english-font">{eng}</div>', unsafe_allow_html=True)
-                    st.markdown(f'<div class="source-box"><span class="source-label">Divine Guidance</span><div class="urdu-font" style="text-align:center;">{verse}</div></div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="source-box"><div class="urdu-font" style="text-align:center;">{verse}</div></div>', unsafe_allow_html=True)
                     st.markdown(f'<div class="urdu-font">{urdu}</div>', unsafe_allow_html=True)
                 except:
                     st.write(response)
 
-# Login Status Handling at the very bottom
-elif st.session_state.get("authentication_status") is False:
-    st.error('Username/password is incorrect')
-elif st.session_state.get("authentication_status") is None:
-    st.warning('Please enter your username and password')
+    st.caption("Sukoon AI | Powered by Faith & AI")
