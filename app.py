@@ -40,8 +40,12 @@ if not st.session_state.get("authentication_status"):
     
     with tab2:
         try:
-            if authenticator.register_user(location='main', pre_authorization=False):
+            # UPDATED: Changed 'pre_authorization' to 'pre_authorized'
+            # Also capturing the result to update the credentials
+            if authenticator.register_user(location='main', pre_authorized=False):
                 st.success('User registered successfully! Please switch to the Login tab.')
+                # This ensures the new user is added to the session state immediately
+                st.session_state.credentials = authenticator.credentials
         except Exception as e:
             st.error(f"Registration error: {e}")
 
