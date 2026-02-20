@@ -25,7 +25,8 @@ authenticator = stauth.Authenticate(
     st.session_state.credentials,
     'sukoon_cookie',
     'sukoon_key',
-    30
+    30,
+    pre_authorized=[]  # ADD THIS LINE HERE
 )
 
 # --- 4. LOGIN & SIGNUP UI ---
@@ -48,16 +49,15 @@ if not auth_status:
     
     with tab2:
         try:
-            # We only allow registration if NOT logged in
-            reg_result = authenticator.register_user(location='main', pre_authorized=[])
+            # REMOVE the pre_authorized=[] from here
+            reg_result = authenticator.register_user(location='main')
+            
             if reg_result:
                 st.success('User registered successfully! Please go to the Login tab.')
-                # Sync credentials using the correct dictionary attribute
                 st.session_state.credentials = authenticator.authenticator_dict
         except Exception as e:
-            # Only show error if registration actually fails
-            if "NoneType" not in str(e): # Filter out internal library noise
-                st.error(f"Registration error: {e}")
+            # This handles the "User not pre-authorized" or other errors
+            st.error(f"Registration error: {e}")
 
 # --- 5. MAIN PROTECTED APP CONTENT ---
 if st.session_state.get("authentication_status"):
