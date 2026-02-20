@@ -4,70 +4,69 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 import os
 
-# --- 1. CONFIG & ADVANCED UI STYLING ---
+# --- 1. CONFIG & SPIRITUAL THEME ---
 st.set_page_config(page_title="Sukoon AI", page_icon="🌿", layout="centered")
 
-# Custom CSS for Gradient Background, Urdu Typography, and Highlighted Cards
 st.markdown("""
     <style>
-    /* Gradient Background */
+    /* 1. Background: Soft spiritual gradient (Not White) */
     .stApp {
-        background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
+        background: linear-gradient(180deg, #f4f9f4 0%, #e8f5e9 100%);
     }
 
-    /* English Guidance Card */
+    /* 2. English Guidance Card */
     .english-card {
-        background-color: #ffffff;
-        border-left: 5px solid #66bb6a;
+        background-color: rgba(255, 255, 255, 0.9);
+        border-left: 5px solid #81c784;
         padding: 20px;
-        border-radius: 12px;
+        border-radius: 15px;
         box-shadow: 0 4px 15px rgba(0,0,0,0.05);
         margin-bottom: 20px;
-        font-family: 'Source Sans Pro', sans-serif;
-        color: #34495e;
+        color: #2e3440;
     }
 
-    /* Urdu Guidance Card */
+    /* 3. Ayah/Hadith Highlight (Gold Border) */
+    .ayah-card {
+        background-color: #ffffff;
+        border: 2px solid #ffd700;
+        padding: 20px;
+        border-radius: 15px;
+        text-align: center;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+    }
+
+    /* 4. Urdu Guidance Card */
     .urdu-card {
-        background-color: #f1f8e9;
+        background-color: #ffffff;
         border-right: 8px solid #2e7d32;
         padding: 25px;
-        border-radius: 12px;
+        border-radius: 15px;
         direction: rtl;
         text-align: right;
         box-shadow: 0 4px 15px rgba(0,0,0,0.05);
     }
 
-    /* Highlight Box for Ayah/Hadith */
-    .highlight-box {
-        background-color: #ffffff;
-        border: 1px dashed #2e7d32;
-        padding: 15px;
-        border-radius: 8px;
-        margin: 15px 0;
-        font-weight: bold;
-        color: #1b5e20;
-    }
-
-    /* Font Styles */
+    /* 5. Fonts */
     @import url('https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&display=swap');
     .urdu-text {
         font-family: 'Noto Nastaliq Urdu', serif;
-        font-size: 20px;
+        font-size: 22px;
         line-height: 2.2;
+        color: #1b5e20;
     }
     .label {
+        font-weight: bold;
         font-size: 12px;
-        text-transform: uppercase;
         color: #999;
-        margin-bottom: 8px;
+        text-transform: uppercase;
         display: block;
-        letter-spacing: 1px;
+        margin-bottom: 10px;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 2. INITIALIZE MODELS ---
+# --- 2. ENGINE ---
 GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
 
 @st.cache_resource
@@ -79,74 +78,54 @@ def load_resources():
 
 vector_db, llm = load_resources()
 
-# --- 3. THE UI ---
-st.title("Sukoon AI (سکون)")
-st.write("🌿 *Find spiritual peace and guidance.*")
+# --- 3. UI ---
+st.title("Sukoon AI | سکون")
+st.markdown("##### *Your sanctuary for spiritual clarity.*")
 
-user_input = st.text_input("How are you feeling today? / آپ کیسا محسوس کر رہے ہیں؟")
+user_input = st.text_input("How are you feeling? / آپ کیسا محسوس کر رہے ہیں؟", placeholder="Share your thoughts...")
 
 if user_input:
     if any(word in user_input.lower() for word in ["suicide", "hurt", "die", "khudkushi", "marna"]):
         st.error("Please reach out to Umang Helpline (Lahore): 0311-7786264 immediately.")
     else:
-        with st.spinner("Seeking guidance..."):
+        with st.spinner("Reflecting..."):
             docs = vector_db.similarity_search(user_input, k=1)
             context = docs[0].page_content
 
-            # C. STRICT PROMPT FOR BILINGUAL OUTPUT
+            # Enhanced prompt to ensure separation
             prompt = f"""
-            You are Sukoon AI.
             User Input: {user_input}
-            Context: {context}
+            Spiritual Source: {context}
 
-            Follow this format EXACTLY:
-            ENGLISH: [Gentle English response]
-            AYAH: [The Arabic and Urdu text of the Hadith or Ayah from context]
-            SEPARATOR
-            URDU: [Gentle Urdu response]
+            Provide a response in 3 distinct parts:
+            1. PART_ENG: A comforting English message.
+            2. PART_AYAH: The specific Hadith or Ayah text.
+            3. PART_URDU: A gentle Urdu explanation.
+            
+            Always include these markers (PART_ENG, PART_AYAH, PART_URDU).
             """
             
             response = llm.invoke(prompt).content
 
             try:
-                # Splitting logic
-                eng_section, urdu_section = response.split("SEPARATOR")
-                eng_parts = eng_section.split("AYAH:")
-                eng_text = eng_parts[0].replace("ENGLISH:", "").strip()
-                ayah_text = eng_parts[1].strip()
-                urdu_text = urdu_section.replace("URDU:", "").strip()
+                # Advanced parsing to prevent "Guidance Found" error
+                eng_msg = response.split("PART_ENG:")[1].split("PART_AYAH:")[0].strip()
+                ayah_msg = response.split("PART_AYAH:")[1].split("PART_URDU:")[0].strip()
+                urdu_msg = response.split("PART_URDU:")[1].strip()
 
-                # --- BEAUTIFUL RENDERING ---
-                
-                # 1. English Section
-                st.markdown(f"""
-                    <div class="english-card">
-                        <span class="label">Gentle Guidance</span>
-                        {eng_text}
-                    </div>
-                """, unsafe_allow_html=True)
+                # Display English
+                st.markdown(f'<div class="english-card"><span class="label">English Guidance</span>{eng_msg}</div>', unsafe_allow_html=True)
 
-                # 2. Highlighted Ayah/Hadith Box
-                st.markdown(f"""
-                    <div class="urdu-card" style="background-color: #fff; border-right: 8px solid #ffd700;">
-                        <span class="label" style="text-align:right;">آیت / حدیث مبارکہ</span>
-                        <div class="urdu-text" style="font-weight: bold; text-align: center;">{ayah_text}</div>
-                    </div>
-                """, unsafe_allow_html=True)
+                # Display Ayah (Highlighted)
+                st.markdown(f'<div class="ayah-card"><span class="label">Divine Source / آیت و حدیث</span><div class="urdu-text" style="text-align:center; font-weight:bold;">{ayah_msg}</div></div>', unsafe_allow_html=True)
 
-                # 3. Urdu Section
-                st.markdown(f"""
-                    <div class="urdu-card">
-                        <span class="label">آپ کے لیے رہنمائی</span>
-                        <div class="urdu-text">{urdu_text}</div>
-                    </div>
-                """, unsafe_allow_html=True)
+                # Display Urdu
+                st.markdown(f'<div class="urdu-card"><span class="label">اردو رہنمائی</span><div class="urdu-text">{urdu_msg}</div></div>', unsafe_allow_html=True)
 
-            except Exception as e:
-                # Fallback display
-                st.info("Guidance Found:")
+            except:
+                # If splitting still fails, just show the raw response but nicely
+                st.info("Direct Guidance:")
                 st.write(response)
 
 # --- 4. FOOTER ---
-st.divider()
-st.caption("Sukoon AI provides spiritual support. For clinical emergencies, consult a professional.")
+st.caption("🌿 Sukoon AI is here to listen and guide.")
