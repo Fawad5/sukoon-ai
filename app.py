@@ -14,11 +14,22 @@ if 'dark_mode' not in st.session_state:
 def toggle_mode():
     st.session_state.dark_mode = not st.session_state.dark_mode
 
-# --- 3. STYLING (Dynamic based on Toggle) ---
-bg_color = "#121212" if st.session_state.dark_mode else "#ffffff"
-text_color = "#e0e0e0" if st.session_state.dark_mode else "#333333"
-card_bg = "rgba(255, 255, 255, 0.05)" if st.session_state.dark_mode else "rgba(46, 125, 50, 0.05)"
-border_color = "#4caf50" if st.session_state.dark_mode else "#2e7d32"
+# --- 3. DYNAMIC STYLING ---
+# Improved colors for better "Light Mode" attraction
+if st.session_state.dark_mode:
+    bg_color = "#121212"
+    title_color = "#4caf50"
+    text_color = "#e0e0e0"
+    card_bg = "rgba(255, 255, 255, 0.05)"
+    border_color = "#4caf50"
+    shadow = "none"
+else:
+    bg_color = "#F7F9F7"  # Soft mint-white
+    title_color = "#1b5e20" # Deep spiritual green
+    text_color = "#212121"  # Bold charcoal for readability
+    card_bg = "#ffffff"     # Pure white cards
+    border_color = "#2e7d32"
+    shadow = "0 4px 12px rgba(0,0,0,0.08)" # Soft shadow for depth
 
 st.markdown(f"""
 <link href="https://cdn.jsdelivr.net/npm/jameel-noori@1.1.2/jameel-noori.min.css" rel="stylesheet">
@@ -27,17 +38,21 @@ st.markdown(f"""
         background-color: {bg_color};
         transition: 0.3s;
     }}
+    h1 {{
+        color: {title_color} !important;
+    }}
     .english-font {{
         font-family: 'Source Sans Pro', sans-serif;
         font-size: 19px;
         color: {text_color};
         line-height: 1.6;
+        font-weight: 400;
     }}
     .urdu-font {{
         font-family: 'Jameel Noori', 'Jameel Noori Nastaleeq', serif;
         direction: rtl;
         text-align: right;
-        font-size: 26px;
+        font-size: 28px;
         line-height: 1.8;
         color: #2e7d32;
     }}
@@ -48,6 +63,7 @@ st.markdown(f"""
         padding: 25px;
         margin: 25px 0;
         text-align: center;
+        box-shadow: {shadow};
     }}
     .source-label {{
         font-size: 14px;
@@ -75,7 +91,8 @@ vector_db, llm = load_resources()
 # --- 5. THE UI ---
 col1, col2 = st.columns([0.8, 0.2])
 with col1:
-    st.title("Sukoon AI (سکون)")
+    # Explicitly styling the title here to ensure it shows in both modes
+    st.markdown(f"<h1>Sukoon AI (سکون)</h1>", unsafe_allow_html=True)
 with col2:
     mode_label = "☀️ Light" if st.session_state.dark_mode else "🌙 Night"
     st.button(mode_label, on_click=toggle_mode)
@@ -109,8 +126,10 @@ if user_input:
                 verse_text = response.split("VERSE_PART:")[1].split("URDU_PART:")[0].strip()
                 urdu_text = response.split("URDU_PART:")[1].strip()
 
+                # 1. English Part
                 st.markdown(f'<div class="english-font">{eng_text}</div>', unsafe_allow_html=True)
 
+                # 2. Verse Box
                 st.markdown(f"""
                     <div class="source-box">
                         <span class="source-label">Divine Guidance / وحی کی روشنی</span>
@@ -118,6 +137,7 @@ if user_input:
                     </div>
                 """, unsafe_allow_html=True)
 
+                # 3. Urdu Part
                 st.markdown(f'<div class="urdu-font">{urdu_text}</div>', unsafe_allow_html=True)
 
             except:
