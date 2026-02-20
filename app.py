@@ -11,13 +11,14 @@ st.set_page_config(page_title="Sukoon AI", page_icon="🌿", layout="centered")
 # --- 2. AUTHENTICATION LOGIC ---
 # Initializing credentials in session state for demo purposes.
 # In a professional app, move these to secrets or a database.
+# Update your Section 2 credentials to this:
 if 'credentials' not in st.session_state:
     st.session_state.credentials = {
         'usernames': {
-            'user123': {
-                'email': 'user@example.com',
-                'name': 'Sukoon User',
-                'password': '123'  # Note: Use hashed passwords in production
+            'admin': {
+                'email': 'admin@sukoon.com',
+                'name': 'Admin',
+                'password': '123' # This will be handled by the library
             }
         }
     }
@@ -40,13 +41,13 @@ if not st.session_state.get("authentication_status"):
     
     with tab2:
         try:
-            # UPDATED: Changed 'pre_authorization' to 'pre_authorized'
-            # Also capturing the result to update the credentials
-            if authenticator.register_user(location='main', pre_authorized=False):
+            # UPDATED: pre_authorized now takes an empty list [] to allow anyone to sign up
+            if authenticator.register_user(location='main', pre_authorized=[]):
                 st.success('User registered successfully! Please switch to the Login tab.')
-                # This ensures the new user is added to the session state immediately
+                # Crucial: Update the session state so the Login tab knows about the new user
                 st.session_state.credentials = authenticator.credentials
         except Exception as e:
+            # This will catch if the email already exists or username is taken
             st.error(f"Registration error: {e}")
 
 # --- 4. PROTECTED APP CONTENT (Only visible if logged in) ---
