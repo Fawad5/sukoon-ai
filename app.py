@@ -7,7 +7,7 @@ import os
 # --- 1. CONFIG & STYLING ---
 st.set_page_config(page_title="Sukoon AI", page_icon="🌿", layout="centered")
 
-# Proper CSS Injection to prevent raw code from showing
+# CSS and JavaScript Injection
 st.markdown("""
     <link href="https://cdn.jsdelivr.net/npm/jameel-noori@1.1.2/jameel-noori.min.css" rel="stylesheet">
     <style>
@@ -43,6 +43,7 @@ st.markdown("""
         display: block;
         margin-bottom: 10px;
     }
+    /* Simple button styling */
     .copy-btn {
         position: absolute;
         top: 10px;
@@ -52,21 +53,31 @@ st.markdown("""
         border: none;
         border-radius: 5px;
         padding: 5px 10px;
-        font-size: 12px;
+        font-size: 11px;
         cursor: pointer;
+        z-index: 100;
     }
-    hr { margin: 20px 0; border: 0; border-top: 1px solid #eee; }
+    .copy-btn:active {
+        background-color: #1b5e20;
+    }
     </style>
 
     <script>
-    function copyToClipboard(text) {
-        const tempInput = document.createElement("textarea");
-        tempInput.value = text;
-        document.body.appendChild(tempInput);
-        tempInput.select();
-        document.execCommand("copy");
-        document.body.removeChild(tempInput);
-        alert("Verse copied to clipboard!");
+    async function copyToClipboard(text) {
+        try {
+            await navigator.clipboard.writeText(text);
+            alert("✓ Verse copied to clipboard!");
+        } catch (err) {
+            console.error('Failed to copy: ', err);
+            // Fallback for older browsers
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand("copy");
+            document.body.removeChild(textArea);
+            alert("✓ Verse copied!");
+        }
     }
     </script>
     """, unsafe_allow_html=True)
@@ -104,13 +115,14 @@ if user_input:
 
             Format your response exactly as follows:
             ENG_PART: [English message]
-            VERSE_PART: [Hadith or Ayah]
+            VERSE_PART: [Hadith or Ayah text only]
             URDU_PART: [Urdu message]
             """
             
             response = llm.invoke(prompt).content
 
             try:
+                # Splitting the response
                 eng_text = response.split("ENG_PART:")[1].split("VERSE_PART:")[0].strip()
                 verse_text = response.split("VERSE_PART:")[1].split("URDU_PART:")[0].strip()
                 urdu_text = response.split("URDU_PART:")[1].strip()
@@ -118,13 +130,13 @@ if user_input:
                 # Display English
                 st.markdown(f'<div class="english-font">{eng_text}</div>', unsafe_allow_html=True)
 
+                # Prepare the verse for JS (remove quotes and newlines)
+                js_safe_verse = verse_text.replace("'", "").replace('"', "").replace("\n", " ")
+
                 # Display Verse Container with Copy Button
-                # Clean text for JavaScript
-                js_verse = verse_text.replace("'", "").replace('"', "")
-                
                 st.markdown(f"""
                     <div class="source-box">
-                        <button class="copy-btn" onclick="copyToClipboard('{js_verse}')">Copy</button>
+                        <button class="copy-btn" onclick="copyToClipboard('{js_safe_verse}')">Copy</button>
                         <span class="source-label">Divine Guidance / وحی کی روشنی</span>
                         <div class="urdu-font" style="text-align: center; color: #1b5e20;">{verse_text}</div>
                     </div>
@@ -133,7 +145,8 @@ if user_input:
                 # Display Urdu
                 st.markdown(f'<div class="urdu-font">{urdu_text}</div>', unsafe_allow_html=True)
 
-            except:
+            except Exception as e:
+                # Fallback if splitting fails
                 st.write(response)
 
 # --- 4. FOOTER ---
