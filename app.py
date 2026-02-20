@@ -7,7 +7,7 @@ import os
 # --- 1. CONFIG & STYLING ---
 st.set_page_config(page_title="Sukoon AI", page_icon="🌿", layout="centered")
 
-# CSS and JavaScript Injection
+# Load Jameel Noori Nastaleeq and styling
 st.markdown("""
     <link href="https://cdn.jsdelivr.net/npm/jameel-noori@1.1.2/jameel-noori.min.css" rel="stylesheet">
     <style>
@@ -26,60 +26,17 @@ st.markdown("""
         font-size: 18px;
         color: #333;
     }
-    .source-box {
-        background-color: rgba(46, 125, 50, 0.05);
-        border: 1px solid #2e7d32;
-        border-radius: 10px;
-        padding: 20px;
-        margin: 20px 0;
-        position: relative;
-        text-align: center;
-    }
+    /* Style for the Label above the Hadith box */
     .source-label {
-        font-size: 12px;
+        font-size: 13px;
         color: #2e7d32;
         font-weight: bold;
         text-transform: uppercase;
+        margin-top: 20px;
+        margin-bottom: 5px;
         display: block;
-        margin-bottom: 10px;
-    }
-    /* Simple button styling */
-    .copy-btn {
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        background-color: #2e7d32;
-        color: white;
-        border: none;
-        border-radius: 5px;
-        padding: 5px 10px;
-        font-size: 11px;
-        cursor: pointer;
-        z-index: 100;
-    }
-    .copy-btn:active {
-        background-color: #1b5e20;
     }
     </style>
-
-    <script>
-    async function copyToClipboard(text) {
-        try {
-            await navigator.clipboard.writeText(text);
-            alert("✓ Verse copied to clipboard!");
-        } catch (err) {
-            console.error('Failed to copy: ', err);
-            // Fallback for older browsers
-            const textArea = document.createElement("textarea");
-            textArea.value = text;
-            document.body.appendChild(textArea);
-            textArea.select();
-            document.execCommand("copy");
-            document.body.removeChild(textArea);
-            alert("✓ Verse copied!");
-        }
-    }
-    </script>
     """, unsafe_allow_html=True)
 
 # --- 2. INITIALIZE MODELS ---
@@ -127,26 +84,18 @@ if user_input:
                 verse_text = response.split("VERSE_PART:")[1].split("URDU_PART:")[0].strip()
                 urdu_text = response.split("URDU_PART:")[1].strip()
 
-                # Display English
+                # 1. Display English
                 st.markdown(f'<div class="english-font">{eng_text}</div>', unsafe_allow_html=True)
 
-                # Prepare the verse for JS (remove quotes and newlines)
-                js_safe_verse = verse_text.replace("'", "").replace('"', "").replace("\n", " ")
+                # 2. Display Native Streamlit Copy-able Box
+                st.markdown('<span class="source-label">Divine Guidance / وحی کی روشنی</span>', unsafe_allow_html=True)
+                # This 'st.code' block has a built-in copy button that works everywhere
+                st.code(verse_text, language=None)
 
-                # Display Verse Container with Copy Button
-                st.markdown(f"""
-                    <div class="source-box">
-                        <button class="copy-btn" onclick="copyToClipboard('{js_safe_verse}')">Copy</button>
-                        <span class="source-label">Divine Guidance / وحی کی روشنی</span>
-                        <div class="urdu-font" style="text-align: center; color: #1b5e20;">{verse_text}</div>
-                    </div>
-                """, unsafe_allow_html=True)
-
-                # Display Urdu
+                # 3. Display Urdu
                 st.markdown(f'<div class="urdu-font">{urdu_text}</div>', unsafe_allow_html=True)
 
             except Exception as e:
-                # Fallback if splitting fails
                 st.write(response)
 
 # --- 4. FOOTER ---
