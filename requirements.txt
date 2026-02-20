@@ -1,6 +1,9 @@
 streamlit
+streamlit-authenticator
+langchain
 langchain-groq
-langchain-community
 langchain-huggingface
+langchain-community
 faiss-cpu
 sentence-transformers
+pyyaml
