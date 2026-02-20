@@ -8,11 +8,8 @@ import os
 st.set_page_config(page_title="Sukoon AI", page_icon="🌿", layout="centered")
 
 st.markdown("""
-    <style>
-    /* 1. Background: Soft spiritual gradient (Not White) */
-    .stApp {
-        background: linear-gradient(180deg, #f4f9f4 0%, #e8f5e9 100%);
-    }
+    <link href="https://cdn.jsdelivr.net/npm/jameel-noori@1.1.2/jameel-noori.min.css" rel="stylesheet">
+    <style>   
 
     /* 2. English Guidance Card */
     .english-card {
