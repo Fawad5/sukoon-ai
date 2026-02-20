@@ -4,34 +4,29 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 import os
 
-# --- 1. CONFIG & STYLING ---
+# --- 1. CONFIG ---
 st.set_page_config(page_title="Sukoon AI", page_icon="🌿", layout="centered")
 
-# Load Jameel Noori Nastaleeq and styling
+# --- 2. STYLING (Injected separately to avoid text errors) ---
 st.markdown("""
-    <link href="https://cdn.jsdelivr.net/npm/jameel-noori@1.1.2/jameel-noori.min.css" rel="stylesheet">
-    <style>
-    /* English Font Styling */
+<link href="https://cdn.jsdelivr.net/npm/jameel-noori@1.1.2/jameel-noori.min.css" rel="stylesheet">
+<style>
     .english-font {
         font-family: 'Source Sans Pro', sans-serif;
         direction: ltr;
         text-align: left;
         font-size: 19px;
-        color: #ebf5ee;
+        color: #333;
         line-height: 1.6;
     }
-    
-    /* Urdu Font Styling */
     .urdu-font {
         font-family: 'Jameel Noori', 'Jameel Noori Nastaleeq', serif;
         direction: rtl;
         text-align: right;
         font-size: 26px;
         line-height: 1.8;
-        color: #0c3bf5;
+        color: #2e7d32;
     }
-    
-    /* Beautiful Separate Container for Hadith/Ayah */
     .source-box {
         background-color: rgba(46, 125, 50, 0.05);
         border: 2px solid #2e7d32;
@@ -41,7 +36,6 @@ st.markdown("""
         text-align: center;
         box-shadow: 2px 5px 15px rgba(0,0,0,0.05);
     }
-    
     .source-label {
         font-size: 14px;
         color: #1b5e20;
@@ -51,12 +45,10 @@ st.markdown("""
         margin-bottom: 12px;
         letter-spacing: 1px;
     }
+</style>
+""", unsafe_allow_html=True)
 
-    hr { margin: 30px 0; border: 0; border-top: 1px solid #eee; }
-    </style>
-    """, unsafe_allow_html=True)
-
-# --- 2. INITIALIZE MODELS ---
+# --- 3. INITIALIZE MODELS ---
 GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
 
 @st.cache_resource
@@ -68,14 +60,13 @@ def load_resources():
 
 vector_db, llm = load_resources()
 
-# --- 3. THE UI ---
+# --- 4. THE UI ---
 st.title("Sukoon AI (سکون)")
 st.write("🌿 *Your bilingual companion for spiritual peace.*")
 
 user_input = st.text_input("How are you feeling today? / آپ کیسا محسوس کر رہے ہیں؟")
 
 if user_input:
-    # Safety Check
     if any(word in user_input.lower() for word in ["suicide", "hurt", "die", "khudkushi", "marna"]):
         st.error("Please reach out to Umang Helpline (Lahore): 0311-7786264 immediately.")
     else:
@@ -83,43 +74,38 @@ if user_input:
             docs = vector_db.similarity_search(user_input, k=1)
             context = docs[0].page_content
 
-            # Prompt structured for the 3-part layout
             prompt = f"""
             You are Sukoon AI.
             Context: {context}
             User Input: {user_input}
-
-            Format your response exactly as follows:
+            Format:
             ENG_PART: [English message]
-            VERSE_PART: [Hadith or Ayah text only]
+            VERSE_PART: [Hadith or Ayah]
             URDU_PART: [Urdu message]
             """
             
             response = llm.invoke(prompt).content
 
             try:
-                # Splitting logic
                 eng_text = response.split("ENG_PART:")[1].split("VERSE_PART:")[0].strip()
                 verse_text = response.split("VERSE_PART:")[1].split("URDU_PART:")[0].strip()
                 urdu_text = response.split("URDU_PART:")[1].strip()
 
-                # 1. English Guidance
+                # 1. English
                 st.markdown(f'<div class="english-font">{eng_text}</div>', unsafe_allow_html=True)
 
-                # 2. Beautiful Verse Container
+                # 2. Verse Box
                 st.markdown(f"""
                     <div class="source-box">
                         <span class="source-label">Divine Guidance / وحی کی روشنی</span>
-                        <div class="urdu-font" style="text-align: center; color: #32a852;">{verse_text}</div>
+                        <div class="urdu-font" style="text-align: center;">{verse_text}</div>
                     </div>
                 """, unsafe_allow_html=True)
 
-                # 3. Urdu Guidance
+                # 3. Urdu
                 st.markdown(f'<div class="urdu-font">{urdu_text}</div>', unsafe_allow_html=True)
 
             except:
-                # Fallback if AI misses markers
                 st.write(response)
 
-# --- 4. FOOTER ---
 st.caption("Sukoon AI provides spiritual support. For clinical emergencies, consult a professional.")
